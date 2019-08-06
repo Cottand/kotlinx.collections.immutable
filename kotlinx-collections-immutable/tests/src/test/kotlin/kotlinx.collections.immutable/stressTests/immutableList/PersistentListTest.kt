@@ -294,6 +294,95 @@ class PersistentListTest {
     }
 
     @Test
+    fun addAllAtIndexTests() {
+        val maxBufferSize = 32
+
+        val listSizes = listOf(0, 1, 10, 31, 32, 33, 64, 65, 100, 1024, 1056, 1057, 10000, 100000)
+        val random = Random()
+
+        for (initialSize in listSizes) {
+
+            val initialElements = List(initialSize) { it }
+            val list = initialElements.fold(persistentListOf<Int>()) { list, element -> list.add(element) }
+
+            val addIndex = mutableListOf(
+                    initialSize // append
+            )
+            if (initialSize > 0) {
+                addIndex.add(0) // prepend
+                addIndex.add(random.nextInt(initialSize)) // at random index
+            }
+            if (initialSize > maxBufferSize) {
+                val rootSize = (initialSize - 1) and (maxBufferSize - 1).inv()
+                val tailSize = initialSize - rootSize
+                addIndex.add(random.nextInt(maxBufferSize)) // first leaf
+                addIndex.add(rootSize + random.nextInt(tailSize)) // tail
+                addIndex.add(rootSize - random.nextInt(maxBufferSize)) // last leaf
+                addIndex.add(rootSize) // after the last leaf
+            }
+
+            val addSize = random.nextInt(maxBufferSize * 2)
+
+            for (index in addIndex) {
+                for (size in addSize..(addSize + maxBufferSize)) {
+
+                    val elementsToAdd = List(size) { initialSize + it }
+                    val result = list.addAll(index, elementsToAdd)
+
+                    val expected = initialElements.toMutableList().also { it.addAll(index, elementsToAdd) }
+                    assertEquals(expected, result)
+                }
+            }
+        }
+    }
+
+    @Test
+    fun removeAllTests() {
+        val maxBufferSize = 32
+
+        val listSizes = listOf(0, 1, 10, 31, 32, 33, 64, 65, 100, 1024, 1056, 1057, 10000, 33000)
+        val random = Random()
+
+        for (initialSize in listSizes) {
+
+            val initialElements = List(initialSize) { it }
+            val list = initialElements.fold(persistentListOf<Int>()) { list, element -> list.add(element) }
+
+            val removeElements = mutableListOf(
+                    initialElements // all
+            )
+            if (initialSize > 0) {
+                removeElements.add(emptyList()) // none
+                removeElements.add(List(1) { random.nextInt(initialSize) }) // a random element
+                removeElements.add(List(maxBufferSize) { random.nextInt(initialSize) }) // random elements
+                removeElements.add(List(initialSize / 2) { random.nextInt(initialSize) }) // ~half elements
+                removeElements.add(List(initialSize) { random.nextInt(initialSize) }) // ~all elements
+            }
+            if (initialSize > maxBufferSize) {
+                val rootSize = (initialSize - 1) and (maxBufferSize - 1).inv()
+                val tailSize = initialSize - rootSize
+                removeElements.add(List(maxBufferSize) { it }) // first leaf
+                removeElements.add(List(tailSize) { rootSize + it }) // tail
+                removeElements.add(List(maxBufferSize) { rootSize - it }) // last leaf
+            }
+
+            for (elements in removeElements) {
+                val expected = initialElements.toMutableList().also { it.removeAll(elements) }
+
+                val result = list.removeAll(elements)
+
+                val resultPredicate = list.let {
+                    val hashSet = elements.toHashSet()
+                    it.removeAll { e -> hashSet.contains(e) }
+                }
+
+                assertEquals(expected, result)
+                assertEquals(expected, resultPredicate)
+            }
+        }
+    }
+
+    @Test
     fun randomOperationsTests() {
         repeat(times = 1) {
 
