@@ -30,9 +30,7 @@ internal class PersistentVectorIterator<out T>(root: Array<Any?>,
     }
 
     override fun next(): T {
-        if (!hasNext()) {
-            throw NoSuchElementException()
-        }
+        checkHasNext()
         if (trieIterator.hasNext()) {
             index++
             return trieIterator.next()
@@ -41,9 +39,7 @@ internal class PersistentVectorIterator<out T>(root: Array<Any?>,
     }
 
     override fun previous(): T {
-        if (!hasPrevious()) {
-            throw NoSuchElementException()
-        }
+        checkHasPrevious()
         if (index > trieIterator.size) {
             return tail[--index - trieIterator.size]
         }

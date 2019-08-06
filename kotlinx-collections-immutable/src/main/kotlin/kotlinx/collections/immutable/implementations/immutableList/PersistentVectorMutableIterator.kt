@@ -142,14 +142,4 @@ internal class PersistentVectorMutableIterator<T>(
         if (lastIteratedIndex == -1)
             throw IllegalStateException()
     }
-
-    private fun checkHasNext() {
-        if (!hasNext())
-            throw NoSuchElementException()
-    }
-
-    private fun checkHasPrevious() {
-        if (!hasPrevious())
-            throw NoSuchElementException()
-    }
 }

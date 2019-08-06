@@ -18,19 +18,10 @@ package kotlinx.collections.immutable.implementations.immutableList
 
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.PersistentList
-import kotlinx.collections.immutable.mutate
 
 abstract class AbstractPersistentList<E> : PersistentList<E>, AbstractList<E>() {
     override fun subList(fromIndex: Int, toIndex: Int): ImmutableList<E> {
         return super<PersistentList>.subList(fromIndex, toIndex)
-    }
-
-    override fun addAll(elements: Collection<E>): PersistentList<E> {
-        return mutate { it.addAll(elements) }
-    }
-
-    override fun addAll(index: Int, c: Collection<E>): PersistentList<E> {
-        return mutate { it.addAll(index, c) }
     }
 
     override fun remove(element: E): PersistentList<E> {
@@ -42,11 +33,8 @@ abstract class AbstractPersistentList<E> : PersistentList<E>, AbstractList<E>() 
     }
 
     override fun removeAll(elements: Collection<E>): PersistentList<E> {
-        return mutate { it.removeAll(elements) }
-    }
-
-    override fun removeAll(predicate: (E) -> Boolean): PersistentList<E> {
-        return mutate { it.removeAll(predicate) }
+        val hashSet = elements.toHashSet()
+        return removeAll { hashSet.contains(it) }
     }
 
     override fun clear(): PersistentList<E> {
