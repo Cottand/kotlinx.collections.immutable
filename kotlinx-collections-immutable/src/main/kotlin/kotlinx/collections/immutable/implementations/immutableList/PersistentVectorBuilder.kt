@@ -682,6 +682,15 @@ internal class PersistentVectorBuilder<E>(private var vector: PersistentList<E>,
     }
 
     fun removeAllWithPredicate(predicate: (E) -> Boolean): Boolean {
+        val anyRemoved = removeAll(predicate)
+        if (anyRemoved) {
+            modCount++
+        }
+        return anyRemoved
+    }
+
+    // Does not update `modCount`.
+    private fun removeAll(predicate: (E) -> Boolean): Boolean {
         val tailSize = tailSize()
         val bufferRef = ObjectRef(null)
 
