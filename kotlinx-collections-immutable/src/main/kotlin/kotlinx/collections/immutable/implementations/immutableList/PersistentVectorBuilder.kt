@@ -800,7 +800,7 @@ internal class PersistentVectorBuilder<E>(private var vector: PersistentList<E>,
      *
      * Returns the filled size of the buffer stored in the [bufferRef].
      */
-    private inline fun removeAllFromTail(predicate: (E) -> Boolean, tailSize: Int, bufferRef: ObjectRef): Int {
+    private fun removeAllFromTail(predicate: (E) -> Boolean, tailSize: Int, bufferRef: ObjectRef): Int {
         val newTailSize = removeAll(predicate, tail, tailSize, bufferRef)
 
         if (newTailSize == tailSize) {
@@ -827,7 +827,7 @@ internal class PersistentVectorBuilder<E>(private var vector: PersistentList<E>,
      *
      * Returns the filled size of the buffer stored in the [bufferRef].
      */
-    private inline fun removeAll(
+    private fun removeAll(
             predicate: (E) -> Boolean,
             buffer: Array<Any?>,
             bufferSize: Int,
@@ -869,7 +869,7 @@ internal class PersistentVectorBuilder<E>(private var vector: PersistentList<E>,
      *
      * Returns the filled size of the buffer stored in the [bufferRef].
      */
-    private inline fun recyclableRemoveAll(
+    private fun recyclableRemoveAll(
             predicate: (E) -> Boolean,
             buffer: Array<Any?>,
             bufferSize: Int,
