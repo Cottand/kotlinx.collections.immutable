@@ -172,7 +172,10 @@ class PersistentHashSetTest {
     fun collisionTests() {
         var set = persistentHashSetOf<ObjectWrapper<Int>>()
 
-        assertTrue(set.add(ObjectWrapper(1, 1)).contains(ObjectWrapper(1, 1)))
+        val oneWrapper = ObjectWrapper(1, 1)
+        val twoWrapper = ObjectWrapper(2, 1)
+        assertTrue(set.add(oneWrapper).add(twoWrapper).contains(oneWrapper))
+        assertTrue(set.add(oneWrapper).add(twoWrapper).contains(twoWrapper))
 
         val eGen = WrapperGenerator<Int>(20000)
         fun wrapper(element: Int): ObjectWrapper<Int> {
