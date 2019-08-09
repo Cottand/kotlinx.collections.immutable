@@ -102,19 +102,36 @@ internal class TrieNode<E>(
 //        assert(buffer[nodeIndex] !== newNode)
 
         val newBuffer = buffer.copyOf()
-        newBuffer[nodeIndex] = newNode
+
+        // TODO: check how this changes affect `add` operation performance.
+        // Try to not create this newNode, but pass here the remained element.
+        val newNodeBuffer = newNode.buffer
+        if (newNodeBuffer.size == 1 && newNodeBuffer[0] !is TrieNode<*>) {
+            newBuffer[nodeIndex] = newNodeBuffer[0]
+        } else {
+            newBuffer[nodeIndex] = newNode
+        }
+
         return TrieNode(bitmap, newBuffer)
     }
 
     private fun mutableUpdateNodeAtIndex(nodeIndex: Int, newNode: TrieNode<E>, owner: MutabilityOwnership): TrieNode<E> {
 //        assert(buffer[nodeIndex] !== newNode)
 
+        val cell: Any?
+        val newNodeBuffer = newNode.buffer
+        if (newNodeBuffer.size == 1 && newNodeBuffer[0] !is TrieNode<*>) {
+            cell = newNodeBuffer[0]
+        } else {
+            cell = newNode
+        }
+
         if (ownedBy === owner) {
-            buffer[nodeIndex] = newNode
+            buffer[nodeIndex] = cell
             return this
         }
         val newBuffer = buffer.copyOf()
-        newBuffer[nodeIndex] = newNode
+        newBuffer[nodeIndex] = cell
         return TrieNode(bitmap, newBuffer, owner)
     }
 
@@ -194,6 +211,7 @@ internal class TrieNode<E>(
 
     private fun removeCellAtIndex(cellIndex: Int, positionMask: Int): TrieNode<E>? {
 //        assert(!hasNoCellAt(positionMask))
+        // It is possible only when this node is the root node
         if (buffer.size == 1) return null
 
         val newBuffer = buffer.removeCellAtIndex(cellIndex)
@@ -365,11 +383,9 @@ internal class TrieNode<E>(
         if (buffer[cellIndex] is TrieNode<*>) { // element may be in node
             val targetNode = nodeAtIndex(cellIndex)
             val newNode = targetNode.remove(elementHash, element, shift + LOG_MAX_BRANCHING_FACTOR)
-            return when {
-                targetNode === newNode -> this
-                newNode == null -> removeCellAtIndex(cellIndex, cellPositionMask)
-                else -> updateNodeAtIndex(cellIndex, newNode)
-            }
+            checkNotNull(newNode)
+            if (targetNode === newNode) return this
+            return updateNodeAtIndex(cellIndex, newNode)
         }
         // element is directly in buffer
         if (element == buffer[cellIndex]) {
@@ -393,11 +409,11 @@ internal class TrieNode<E>(
         if (buffer[cellIndex] is TrieNode<*>) { // element may be in node
             val targetNode = nodeAtIndex(cellIndex)
             val newNode = targetNode.mutableRemove(elementHash, element, shift + LOG_MAX_BRANCHING_FACTOR, mutator)
-            return when {
-                targetNode === newNode -> this
-                newNode == null -> mutableRemoveCellAtIndex(cellIndex, cellPositionMask, mutator.ownership)
-                else -> mutableUpdateNodeAtIndex(cellIndex, newNode, mutator.ownership)
+            checkNotNull(newNode)
+            if (ownedBy === mutator.ownership || targetNode !== newNode) {
+                return mutableUpdateNodeAtIndex(cellIndex, newNode, mutator.ownership)
             }
+            return this
         }
         // element is directly in buffer
         if (element == buffer[cellIndex]) {
