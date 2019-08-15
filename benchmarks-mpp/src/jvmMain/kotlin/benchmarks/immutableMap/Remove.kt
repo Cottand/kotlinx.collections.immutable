@@ -20,6 +20,7 @@ import benchmarks.*
 import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.persistentMapOf
 import org.openjdk.jmh.annotations.*
+import org.openjdk.jmh.infra.Blackhole
 
 @State(Scope.Thread)
 open class Remove {
@@ -34,11 +35,13 @@ open class Remove {
 
     private var keys = listOf<IntWrapper>()
     private var persistentMap = persistentMapOf<IntWrapper, String>()
+    private var halfHeightPersistentMap = persistentMapOf<IntWrapper, String>()
 
     @Setup(Level.Trial)
     fun prepare() {
         keys = generateKeys(hashCodeType, size)
         persistentMap = persistentMapPut(implementation, keys)
+        halfHeightPersistentMap = halfHeightPersistentMap(persistentMap, keys)
 
         if (hashCodeType == NON_EXISTING_HASH_CODE)
             keys = generateKeys(hashCodeType, size)
@@ -51,5 +54,46 @@ open class Remove {
             map = map.remove(keys[index])
         }
         return map
+    }
+
+    /**
+     * Puts `size - entriesForHalfHeight(size)` new entries to a persistent map of size `entriesForHalfHeight(size)`
+     * that had initially [size] entries.
+     *
+     * Measures mean time and memory spent per (roughly one) `put` operation.
+     *
+     * Expected time: [Put.put]
+     * Expected memory: [Put.put]
+     */
+    @Benchmark
+    fun putAfterRemove(): PersistentMap<IntWrapper, String> {
+        var map = halfHeightPersistentMap
+
+        repeat(size - halfHeightPersistentMap.size) { index ->
+            map = map.put(keys[index], "some element")
+        }
+
+        return map
+    }
+
+    /**
+     * Iterates keys of a persistent map of size `entriesForHalfHeight(size)` several times until iterating [size] elements.
+     *
+     * Measures mean time and memory spent per `iterate` operation.
+     *
+     * Expected time: [Iterate.iterateKeys] with [Iterate.size] = `entriesForHalfHeight([size])`
+     * Expected memory: [Iterate.iterateKeys] with [Iterate.size] = `entriesForHalfHeight([size])`
+     */
+    @Benchmark
+    fun iterateKeysAfterRemove(bh: Blackhole) {
+        var count = 0
+        while (count < size) {
+            for (e in halfHeightPersistentMap) {
+                bh.consume(e)
+
+                if (++count == size)
+                    break
+            }
+        }
     }
 }

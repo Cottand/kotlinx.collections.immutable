@@ -20,6 +20,7 @@ import benchmarks.*
 import kotlinx.collections.immutable.ImmutableSet
 import kotlinx.collections.immutable.persistentSetOf
 import org.openjdk.jmh.annotations.*
+import org.openjdk.jmh.infra.Blackhole
 
 @State(Scope.Thread)
 open class Remove {
@@ -34,11 +35,13 @@ open class Remove {
 
     private var elements = listOf<IntWrapper>()
     private var persistentSet = persistentSetOf<IntWrapper>()
+    private var halfHeightPersistentSet = persistentSetOf<IntWrapper>()
 
     @Setup(Level.Trial)
     fun prepare() {
         elements = generateElements(hashCodeType, size)
         persistentSet = persistentSetAdd(implementation, elements)
+        halfHeightPersistentSet = halfHeightPersistentSet(persistentSet, elements)
 
         if (hashCodeType == NON_EXISTING_HASH_CODE)
             elements = generateElements(hashCodeType, size)
@@ -51,5 +54,46 @@ open class Remove {
             set = set.remove(elements[index])
         }
         return set
+    }
+
+    /**
+     * Adds `size - elementsForHalfHeight(size)` new elements to a persistent set of size `elementsForHalfHeight(size)`
+     * that had initially [size] elements.
+     *
+     * Measures mean time and memory spent per (roughly one) `add` operation.
+     *
+     * Expected time: [Add.add]
+     * Expected memory: [Add.add]
+     */
+    @Benchmark
+    fun addAfterRemove(): ImmutableSet<IntWrapper> {
+        var set = halfHeightPersistentSet
+
+        repeat(size - halfHeightPersistentSet.size) { index ->
+            set = set.add(elements[index])
+        }
+
+        return set
+    }
+
+    /**
+     * Iterates elements of a persistent set of size `elementsForHalfHeight(size)` several times until iterating [size] elements.
+     *
+     * Measures mean time and memory spent per `iterate` operation.
+     *
+     * Expected time: [Iterate.iterate] with [Iterate.size] = `elementsForHalfHeight([size])`
+     * Expected memory: [Iterate.iterate] with [Iterate.size] = `elementsForHalfHeight([size])`
+     */
+    @Benchmark
+    fun iterateAfterRemove(bh: Blackhole) {
+        var count = 0
+        while (count < size) {
+            for (e in halfHeightPersistentSet) {
+                bh.consume(e)
+
+                if (++count == size)
+                    break
+            }
+        }
     }
 }

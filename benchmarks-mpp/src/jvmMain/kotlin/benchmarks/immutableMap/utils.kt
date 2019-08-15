@@ -20,6 +20,8 @@ import benchmarks.*
 import kotlinx.collections.immutable.PersistentMap
 import kotlinx.collections.immutable.persistentHashMapOf
 import kotlinx.collections.immutable.persistentMapOf
+import kotlin.math.ceil
+import kotlin.math.log
 
 
 fun <K, V> emptyPersistentMap(implementation: String): PersistentMap<K, V> = when (implementation) {
@@ -32,6 +34,25 @@ fun <K> persistentMapPut(implementation: String, keys: List<K>): PersistentMap<K
     var map = emptyPersistentMap<K, String>(implementation)
     for (key in keys) {
         map = map.put(key, "some element")
+    }
+    return map
+}
+
+private fun entriesForHalfHeight(size: Int): Int {
+    val branchingFactor = 32
+    val logBranchingFactor = 5
+
+    val approximateHeight = ceil(log(size.toDouble(), branchingFactor.toDouble())).toInt()
+    return 1 shl ((approximateHeight / 2) * logBranchingFactor)
+}
+
+
+fun <K> halfHeightPersistentMap(persistentMap: PersistentMap<K, String>, keys: List<K>): PersistentMap<K, String> {
+    val elementsToLeave = entriesForHalfHeight(persistentMap.size)
+
+    var map = persistentMap
+    repeat(persistentMap.size - elementsToLeave) { index ->
+        map = map.remove(keys[index])
     }
     return map
 }

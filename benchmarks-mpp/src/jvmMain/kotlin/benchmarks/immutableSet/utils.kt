@@ -20,6 +20,8 @@ import benchmarks.*
 import kotlinx.collections.immutable.PersistentSet
 import kotlinx.collections.immutable.persistentHashSetOf
 import kotlinx.collections.immutable.persistentSetOf
+import kotlin.math.ceil
+import kotlin.math.log
 
 
 fun <E> emptyPersistentSet(implementation: String): PersistentSet<E> = when (implementation) {
@@ -32,6 +34,24 @@ fun <E> persistentSetAdd(implementation: String, elements: List<E>): PersistentS
     var set = emptyPersistentSet<E>(implementation)
     for (element in elements) {
         set = set.add(element)
+    }
+    return set
+}
+
+private fun elementsForHalfHeight(size: Int): Int {
+    val branchingFactor = 32
+    val logBranchingFactor = 5
+
+    val approximateHeight = ceil(log(size.toDouble(), branchingFactor.toDouble())).toInt()
+    return 1 shl ((approximateHeight / 2) * logBranchingFactor)
+}
+
+fun <E> halfHeightPersistentSet(persistentSet: PersistentSet<E>, elements: List<E>): PersistentSet<E> {
+    val elementsToLeave = elementsForHalfHeight(persistentSet.size)
+
+    var set = persistentSet
+    repeat(persistentSet.size - elementsToLeave) { index ->
+        set = set.remove(elements[index])
     }
     return set
 }
